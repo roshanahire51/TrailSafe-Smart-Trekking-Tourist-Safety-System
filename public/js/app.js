@@ -484,6 +484,9 @@ const App = {
         document.querySelectorAll('.admin-subtab').forEach(tab => {
             tab.classList.toggle('active', tab.id === `subtab-${subtabId}`);
         });
+        if (subtabId === 'admin-database') {
+            this.loadDatabaseExplorer();
+        }
     },
 
     // --- Routes & Data ---
@@ -1444,6 +1447,9 @@ const App = {
         } catch (e) {
             console.error('Failed to load alerts for admin', e);
         }
+
+        // Preload Database Tables Explorer
+        this.loadDatabaseExplorer();
     },
 
     async updateSOSStatus(sosId, status) {
@@ -1490,6 +1496,144 @@ const App = {
         } catch (e) {
             this.showToast('Failed to broadcast alert', 'error');
         }
+    },
+
+    // --- Live Database Tables Explorer (All 15 Tables) ---
+    activeDbTable: 'User',
+    databaseDump: null,
+
+    async loadDatabaseExplorer() {
+        try {
+            const res = await fetch('/api/admin/database');
+            const data = await res.json();
+            if (data.success && data.tables) {
+                this.databaseDump = data.tables;
+                this.renderDbTablePills();
+                this.renderActiveDbTable();
+            }
+        } catch (e) {
+            console.error('Failed to load database dump', e);
+            this.showToast('Failed to load database tables', 'error');
+        }
+    },
+
+    renderDbTablePills() {
+        const container = document.getElementById('dbTablePillsContainer');
+        if (!container || !this.databaseDump) return;
+
+        const tableNames = Object.keys(this.databaseDump);
+        container.innerHTML = tableNames.map(name => {
+            const count = this.databaseDump[name] ? this.databaseDump[name].length : 0;
+            const isActive = name === this.activeDbTable;
+            return `
+                <button type="button" class="btn btn-sm ${isActive ? 'btn-primary' : 'btn-outline'}" 
+                        style="border-radius:20px; font-size:0.78rem; padding:4px 10px; display:inline-flex; align-items:center; gap:5px;"
+                        onclick="App.selectDbTable('${name}')">
+                    <span>${name}</span>
+                    <span style="background:${isActive ? 'rgba(255,255,255,0.35)' : 'var(--gray-200)'}; color:${isActive ? '#fff' : 'var(--gray-800)'}; border-radius:10px; padding:1px 5px; font-size:0.72rem; font-weight:700;">${count}</span>
+                </button>
+            `;
+        }).join('');
+    },
+
+    selectDbTable(tableName) {
+        this.activeDbTable = tableName;
+        const searchInput = document.getElementById('dbTableSearchInput');
+        if (searchInput) searchInput.value = '';
+        this.renderDbTablePills();
+        this.renderActiveDbTable();
+    },
+
+    filterActiveDbTable() {
+        const searchInput = document.getElementById('dbTableSearchInput');
+        const query = (searchInput ? searchInput.value : '').toLowerCase().trim();
+        this.renderActiveDbTable(query);
+    },
+
+    renderActiveDbTable(query = '') {
+        const container = document.getElementById('dbTableContainer');
+        const titleEl = document.getElementById('activeTableNameDisplay');
+        const badgeEl = document.getElementById('activeTableRowCountBadge');
+        if (!container || !this.databaseDump) return;
+
+        const tableName = this.activeDbTable;
+        let rows = this.databaseDump[tableName] || [];
+
+        if (titleEl) titleEl.innerText = `Table: ${tableName}`;
+        if (badgeEl) badgeEl.innerText = `${rows.length} total rows`;
+
+        if (query) {
+            rows = rows.filter(r => {
+                return Object.values(r).some(val => 
+                    val !== null && val !== undefined && String(val).toLowerCase().includes(query)
+                );
+            });
+            if (badgeEl) badgeEl.innerText = `${rows.length} matches (filtered from ${this.databaseDump[tableName].length})`;
+        }
+
+        if (rows.length === 0) {
+            container.innerHTML = `
+                <div style="text-align:center; padding:32px 16px; color:var(--gray-500);">
+                    <p style="margin:0; font-weight:600;">No records found in table <code>${tableName}</code>${query ? ' matching filter' : ''}.</p>
+                </div>
+            `;
+            return;
+        }
+
+        const sample = rows[0];
+        const columns = Object.keys(sample);
+
+        let tableHtml = `
+            <table class="data-table" style="font-size:0.83rem; width:100%;">
+                <thead>
+                    <tr>
+                        ${columns.map(c => `<th style="text-transform:capitalize; white-space:nowrap;">${c.replace(/([A-Z])/g, ' $1')}</th>`).join('')}
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        rows.forEach(row => {
+            tableHtml += `<tr>`;
+            columns.forEach(col => {
+                let val = row[col];
+                let displayVal = val;
+                if (val === null || val === undefined) {
+                    displayVal = `<span style="color:var(--gray-400); font-style:italic;">NULL</span>`;
+                } else if (typeof val === 'boolean') {
+                    displayVal = `<span class="badge badge-${val ? 'success' : 'danger'}">${val}</span>`;
+                } else if (typeof val === 'number') {
+                    displayVal = `<strong>${val}</strong>`;
+                } else if (typeof val === 'object') {
+                    displayVal = `<pre style="margin:0; font-size:0.75rem;">${JSON.stringify(val)}</pre>`;
+                } else if (String(val).startsWith('http') || String(val).startsWith('assets/')) {
+                    displayVal = `<a href="${val}" target="_blank" style="color:var(--primary);">${val}</a>`;
+                } else if (col.toLowerCase().includes('status')) {
+                    const badgeClass = (val === 'Success' || val === 'Completed' || val === 'Active' || val === 'Resolved') ? 'nature' : (val === 'Failed' || val === 'High' ? 'danger' : 'warning');
+                    displayVal = `<span class="badge badge-${badgeClass}">${val}</span>`;
+                }
+                tableHtml += `<td>${displayVal}</td>`;
+            });
+            tableHtml += `</tr>`;
+        });
+
+        tableHtml += `</tbody></table>`;
+        container.innerHTML = tableHtml;
+    },
+
+    downloadDbJson() {
+        if (!this.databaseDump) {
+            this.showToast('Database data not loaded yet.', 'warning');
+            return;
+        }
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(this.databaseDump, null, 2));
+        const dlAnchor = document.createElement('a');
+        dlAnchor.setAttribute("href", dataStr);
+        dlAnchor.setAttribute("download", `trailsafe_database_${new Date().toISOString().slice(0,10)}.json`);
+        document.body.appendChild(dlAnchor);
+        dlAnchor.click();
+        dlAnchor.remove();
+        this.showToast('Exported complete relational database JSON dump.', 'success');
     },
 
     // --- Toast Notifications ---

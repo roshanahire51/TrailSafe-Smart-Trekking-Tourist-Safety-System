@@ -72,6 +72,8 @@ public class ApiHandler implements HttpHandler {
                 handleGetAdminUsers(exchange);
             } else if (path.equals("/api/admin/payments") && "GET".equals(method)) {
                 handleGetAdminPayments(exchange);
+            } else if (path.equals("/api/admin/database") && "GET".equals(method)) {
+                handleGetFullDatabase(exchange);
             } else if (path.equals("/api/services") && "GET".equals(method)) {
                 handleGetEmergencyServices(exchange);
             } else {
@@ -279,6 +281,16 @@ public class ApiHandler implements HttpHandler {
             list.add(es.toMap());
         }
         sendJson(exchange, 200, Map.of("services", list));
+    }
+
+    private void handleGetFullDatabase(HttpExchange exchange) throws IOException {
+        Map<String, List<Map<String, Object>>> dbDump = db.getFullDatabaseDump();
+        sendJson(exchange, 200, Map.of(
+            "success", true,
+            "databaseName", "trailsafe_db",
+            "totalTables", dbDump.size(),
+            "tables", dbDump
+        ));
     }
 
     // --- Helpers ---

@@ -491,4 +491,73 @@ public class DatabaseManager {
         }
         return list;
     }
+
+    /**
+     * Dumps all 15 relational tables with complete row data.
+     */
+    public Map<String, List<Map<String, Object>>> getFullDatabaseDump() {
+        Map<String, List<Map<String, Object>>> dump = new LinkedHashMap<>();
+
+        List<Map<String, Object>> userList = new ArrayList<>();
+        for (User u : users.values()) userList.add(u.toMap());
+        dump.put("User", userList);
+
+        List<Map<String, Object>> contactList = new ArrayList<>();
+        for (EmergencyContact ec : emergencyContacts.values()) contactList.add(ec.toMap());
+        dump.put("EmergencyContact", contactList);
+
+        List<Map<String, Object>> routeList = new ArrayList<>();
+        for (TrekkingRoute r : routes.values()) routeList.add(r.toMap());
+        dump.put("TrekkingRoute", routeList);
+
+        List<Map<String, Object>> checkpointList = new ArrayList<>();
+        for (Checkpoint cp : checkpoints.values()) checkpointList.add(cp.toMap());
+        dump.put("Checkpoint", checkpointList);
+
+        List<Map<String, Object>> facilityList = new ArrayList<>();
+        for (RouteFacility rf : routeFacilities.values()) facilityList.add(rf.toMap());
+        dump.put("RouteFacility", facilityList);
+
+        List<Map<String, Object>> weatherList = new ArrayList<>();
+        for (WeatherInfo wi : weatherInfos.values()) weatherList.add(wi.toMap());
+        dump.put("WeatherInfo", weatherList);
+
+        List<Map<String, Object>> tripList = new ArrayList<>();
+        for (Trip t : trips.values()) tripList.add(t.toMap());
+        dump.put("Trip", tripList);
+
+        List<Map<String, Object>> shareList = new ArrayList<>();
+        for (LocationShare ls : locationShares.values()) shareList.add(ls.toMap());
+        dump.put("LocationShare", shareList);
+
+        List<Map<String, Object>> paymentList = new ArrayList<>();
+        for (Payment p : payments.values()) paymentList.add(p.toMap());
+        dump.put("Payment", paymentList);
+
+        List<Map<String, Object>> syncList = new ArrayList<>();
+        for (PaymentSync ps : paymentSyncs.values()) syncList.add(ps.toMap());
+        dump.put("PaymentSync", syncList);
+
+        List<Map<String, Object>> sosList = new ArrayList<>();
+        for (SOSRequest s : sosRequests.values()) sosList.add(s.toMap());
+        dump.put("SOSRequest", sosList);
+
+        List<Map<String, Object>> serviceList = new ArrayList<>();
+        for (EmergencyService es : emergencyServices.values()) serviceList.add(es.toMap());
+        dump.put("EmergencyService", serviceList);
+
+        List<Map<String, Object>> alertList = new ArrayList<>();
+        for (SafetyAlert sa : safetyAlerts.values()) alertList.add(sa.toMap());
+        dump.put("SafetyAlert", alertList);
+
+        List<Map<String, Object>> feedbackList = new ArrayList<>();
+        for (Feedback fb : feedbacks.values()) feedbackList.add(fb.toMap());
+        dump.put("Feedback", feedbackList);
+
+        List<Map<String, Object>> adminList = new ArrayList<>();
+        for (Admin a : admins.values()) adminList.add(a.toMap());
+        dump.put("Admin", adminList);
+
+        return dump;
+    }
 }

@@ -307,6 +307,7 @@
                 <button class="admin-tab-btn" onclick="App.showAdminSubTab('admin-alerts')">Issue Safety Alerts</button>
                 <button class="admin-tab-btn" onclick="App.showAdminSubTab('admin-users')">Registered Users & Contacts</button>
                 <button class="admin-tab-btn" onclick="App.showAdminSubTab('admin-payments')">Payments & Synchronisation</button>
+                <button class="admin-tab-btn" onclick="App.showAdminSubTab('admin-database')">🗄️ Database Tables Explorer</button>
             </div>
 
             <!-- Admin Sub-tab 1: SOS Monitor -->
@@ -422,6 +423,67 @@
                                 <!-- Populated dynamically -->
                             </tbody>
                         </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Admin Sub-tab 5: Live Database Tables Explorer -->
+            <div id="subtab-admin-database" class="admin-subtab">
+                <div class="subtab-card">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
+                        <div>
+                            <h3 style="margin-bottom:4px;">Relational Database Explorer (All 15 Tables)</h3>
+                            <p class="subtitle" style="margin-bottom:0;">Live records matching Chapter 4.1 & 4.3 Database Design in project documentation.</p>
+                        </div>
+                        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                            <button type="button" class="btn btn-sm btn-outline" onclick="App.downloadDbJson()" title="Download full JSON database dump">
+                                📥 Export Full JSON Dump
+                            </button>
+                            <a href="/api/admin/database" target="_blank" class="btn btn-sm btn-secondary" title="View raw REST JSON API in new tab">
+                                🔗 Open REST API
+                            </a>
+                            <button type="button" class="btn btn-sm btn-primary" onclick="App.loadDatabaseExplorer()">
+                                🔄 Refresh
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Quick table selection pills -->
+                    <div style="margin-bottom:16px;">
+                        <label style="font-weight:600; font-size:0.85rem; color:var(--gray-700); display:block; margin-bottom:6px;">Select Table to Inspect:</label>
+                        <div id="dbTablePillsContainer" style="display:flex; flex-wrap:wrap; gap:6px;">
+                            <!-- Dynamically generated table pills with counts -->
+                        </div>
+                    </div>
+
+                    <!-- Filter / Search bar for the active table -->
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:14px; padding:10px 14px; background:var(--gray-100); border-radius:8px;">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <span style="font-size:0.9rem; font-weight:700; color:var(--dark);" id="activeTableNameDisplay">Table: User</span>
+                            <span class="badge badge-nature" id="activeTableRowCountBadge">0 records</span>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <input type="text" id="dbTableSearchInput" class="text-input" placeholder="Filter rows in this table..." style="padding:6px 12px; font-size:0.85rem; width:220px;" oninput="App.filterActiveDbTable()">
+                        </div>
+                    </div>
+
+                    <!-- Table container -->
+                    <div class="table-responsive" id="dbTableContainer" style="max-height:480px; overflow-y:auto;">
+                        <!-- Dynamically populated table -->
+                    </div>
+
+                    <!-- Database Information & SQL Files Reference -->
+                    <div style="margin-top:20px; padding:14px 18px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px;">
+                        <h4 style="margin-bottom:6px; color:#166534; font-size:0.95rem;">📂 MySQL Source Scripts & Dual Persistence</h4>
+                        <p style="font-size:0.85rem; color:#15803d; margin:0 0 8px 0; line-height:1.5;">
+                            All 15 tables are defined in your repository under:
+                            <code style="background:#dcfce7; padding:2px 6px; border-radius:4px; font-weight:600;">database/schema.sql</code> (DDL with Primary & Foreign Keys) and
+                            <code style="background:#dcfce7; padding:2px 6px; border-radius:4px; font-weight:600;">database/seed_data.sql</code> (DML Seed Data).
+                        </p>
+                        <p style="font-size:0.82rem; color:#15803d; margin:0; line-height:1.5;">
+                            You can also import both files directly into <strong>MySQL Workbench</strong> or <strong>phpMyAdmin</strong> by running:
+                            <code style="background:#dcfce7; padding:2px 6px; border-radius:4px;">mysql -u root -p &lt; database/schema.sql</code>
+                        </p>
                     </div>
                 </div>
             </div>
