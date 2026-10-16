@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TrailSafe – Smart Trekking & Tourist Safety System</title>
+    <!-- Leaflet CSS for Trek Maps & Location Tracking -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="css/styles.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Top System Header & Status Bar -->
+    <header class="app-header">
+        <div class="header-container">
+            <div class="brand">
+                <div class="brand-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m8 3 4 8 5-5 5 15H2L8 3z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="brand-title">TrailSafe</h1>
+                    <span class="brand-subtitle">Smart Trekking & Tourist Safety System</span>
+                </div>
+            </div>
+
+            <!-- Global Status Bar: Network Mode Simulator & Active User -->
+            <div class="header-actions">
+                <div class="network-badge-group">
+                    <span class="network-label">Network Mode:</span>
+                    <button id="networkToggleBtn" class="network-toggle-btn online" title="Toggle to simulate offline payments in remote mountain areas">
+                        <span class="status-indicator"></span>
+                        <span id="networkStatusText">Online</span>
+                    </button>
+                    <span id="offlineQueueBadge" class="offline-queue-badge hidden">0 Pending Sync</span>
+                </div>
+
+                <div class="user-session-widget" id="userSessionWidget">
+                    <!-- Populated dynamically: guest or logged in user/admin -->
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Global Safety Alerts Banner Ticker -->
+    <div id="globalAlertBanner" class="alert-banner hidden">
+        <div class="alert-banner-content">
+            <span class="alert-badge pulse">URGENT SAFETY ALERT</span>
+            <span id="alertBannerText">Heavy Rain Alert: Slippery rocks near Tolar Khind.</span>
+        </div>
+        <button class="banner-close" onclick="document.getElementById('globalAlertBanner').classList.add('hidden')">&times;</button>
+    </div>
+
+    <!-- Navigation Bar -->
+    <nav class="app-nav">
+        <div class="nav-container">
+            <button class="nav-item active" data-tab="dashboard">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                Dashboard
+            </button>
+            <button class="nav-item" data-tab="routes">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+                Trekking Routes
+            </button>
+            <button class="nav-item" data-tab="trips">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                My Bookings & Trips
+            </button>
+            <button class="nav-item" data-tab="tracking">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/></svg>
+                Live Location Share
+            </button>
+            <button class="nav-item" data-tab="feedback">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                Feedback
+            </button>
+            <button class="nav-item admin-only hidden" data-tab="admin">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                Admin Control Center
+            </button>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+
+        <!-- 1. DASHBOARD VIEW -->
+        <section id="view-dashboard" class="content-view active">
+            <div class="hero-card">
+                <div class="hero-text">
+                    <span class="badge badge-nature">Safe Wilderness Exploration</span>
+                    <h2>Plan Safely, Trek Confidently</h2>
+                    <p>TrailSafe integrates verified route checkpoints, live weather updates, automated emergency SOS dispatch, and offline payment synchronization for remote mountain corridors.</p>
+                    <div class="hero-actions">
+                        <button class="btn btn-primary" onclick="App.showTab('routes')">Browse Trekking Routes</button>
+                        <button class="btn btn-secondary" onclick="App.showTab('tracking')">Share Live Location</button>
+                        <button class="btn btn-danger" onclick="App.openSOSModal()">Emergency SOS</button>
+                    </div>
+                </div>
+                <div class="hero-stats">
+                    <div class="stat-box">
+                        <span class="stat-number" id="statRoutesCount">5</span>
+                        <span class="stat-title">Verified Trails</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-number" id="statCheckpointsCount">10</span>
+                        <span class="stat-title">Checkpoints</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-number" id="statAlertsCount">2</span>
+                        <span class="stat-title">Active Safety Alerts</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-number">24/7</span>
+                        <span class="stat-title">Rescue Response</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active Safety Alerts Panel -->
+            <div class="section-block">
+                <div class="section-header">
+                    <div>
+                        <h3>Official Mountain Safety Alerts</h3>
+                        <p class="subtitle">Issued in real-time by TrailSafe Admin & Regional Authorities</p>
+                    </div>
+                </div>
+                <div class="alerts-grid" id="dashboardAlertsContainer">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+
+            <!-- Featured Routes Preview -->
+            <div class="section-block">
+                <div class="section-header">
+                    <div>
+                        <h3>Popular Trekking Routes</h3>
+                        <p class="subtitle">Complete with elevation checkpoints, medical points, and water shelters</p>
+                    </div>
+                    <button class="btn btn-sm btn-outline" onclick="App.showTab('routes')">View All Routes &rarr;</button>
+                </div>
+                <div class="routes-grid" id="featuredRoutesContainer">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. ROUTES VIEW -->
+        <section id="view-routes" class="content-view">
+            <div class="section-block">
+                <div class="section-header">
+                    <div>
+                        <h2>Trekking Routes & Trail Guide</h2>
+                        <p class="subtitle">Select a trail to inspect facilities, weather, checkpoints, and book your trek.</p>
+                    </div>
+                    <div class="filter-controls">
+                        <input type="text" id="routeSearchInput" class="search-input" placeholder="Search by trail name...">
+                        <select id="difficultyFilter" class="select-input">
+                            <option value="ALL">All Difficulties</option>
+                            <option value="Easy">Easy</option>
+                            <option value="Medium">Medium</option>
+                            <option value="Hard">Hard</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="routes-grid" id="allRoutesContainer">
+                    <!-- Dynamic route cards -->
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. TRIPS & BOOKINGS VIEW -->
+        <section id="view-trips" class="content-view">
+            <div class="section-block">
+                <div class="section-header">
+                    <div>
+                        <h2>My Booked Trips & Permits</h2>
+                        <p class="subtitle">Manage planned treks, download official payment receipts, and check synchronization status.</p>
+                    </div>
+                    <button class="btn btn-primary btn-sm" onclick="App.showTab('routes')">+ Plan New Trek</button>
+                </div>
+
+                <!-- Offline notice if pending items -->
+                <div id="offlineTripsNotice" class="sync-notice hidden">
+                    <div class="sync-notice-icon">&#9888;</div>
+                    <div class="sync-notice-text">
+                        <strong>Offline Bookings Waiting to Synchronize:</strong>
+                        <p>You have trips booked while network was unavailable. As soon as connectivity returns, they will sync automatically.</p>
+                    </div>
+                    <button class="btn btn-warning btn-sm" onclick="App.syncPendingOfflineBookings()">Sync Now</button>
+                </div>
+
+                <div class="trips-table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Trip ID</th>
+                                <th>Route Name</th>
+                                <th>Dates</th>
+                                <th>Status</th>
+                                <th>Payment</th>
+                                <th>Sync Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="userTripsTableBody">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4. LIVE LOCATION SHARE VIEW -->
+        <section id="view-tracking" class="content-view">
+            <div class="section-block">
+                <div class="section-header">
+                    <div>
+                        <h2>Live Location Sharing & Route Navigation</h2>
+                        <p class="subtitle">Broadcast your live GPS trail position to designated emergency contacts.</p>
+                    </div>
+                    <div class="tracking-action-bar">
+                        <div class="tracking-status-pill" id="trackingStatusPill">
+                            <span class="status-indicator"></span>
+                            <span id="trackingStatusText">Sharing Status: Inactive</span>
+                        </div>
+                        <button id="toggleSharingBtn" class="btn btn-success" onclick="App.toggleLocationSharing()">
+                            Start Live Sharing
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Trusted Contact Card -->
+                <div class="emergency-contact-strip" id="emergencyContactStrip">
+                    <!-- Populated dynamically with User's EmergencyContact record -->
+                </div>
+
+                <!-- Interactive Leaflet Map -->
+                <div class="map-card">
+                    <div class="map-toolbar">
+                        <span><strong>Interactive Trail Map</strong> (Checkpoints, Route Facilities, & Live Position)</span>
+                        <div class="map-legend">
+                            <span class="legend-item"><span class="marker-dot red"></span> Checkpoint</span>
+                            <span class="legend-item"><span class="marker-dot blue"></span> Facility</span>
+                            <span class="legend-item"><span class="marker-dot green"></span> Live Trekker</span>
+                        </div>
+                    </div>
+                    <div id="leafletMap" style="height: 520px; width: 100%; border-radius: 0 0 12px 12px;"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 5. FEEDBACK VIEW -->
+        <section id="view-feedback" class="content-view">
+            <div class="feedback-layout">
+                <div class="feedback-form-card">
+                    <h3>Submit Trekking Feedback</h3>
+                    <p class="subtitle">Share your trail review and safety experience with other tourists.</p>
+                    <form id="feedbackForm" onsubmit="App.handleFeedbackSubmit(event)">
+                        <div class="form-group">
+                            <label>Rating (1 to 5 Stars):</label>
+                            <div class="star-rating" id="starRatingSelector">
+                                <span class="star" data-rating="1">&#9733;</span>
+                                <span class="star" data-rating="2">&#9733;</span>
+                                <span class="star" data-rating="3">&#9733;</span>
+                                <span class="star" data-rating="4">&#9733;</span>
+                                <span class="star active" data-rating="5">&#9733;</span>
+                            </div>
+                            <input type="hidden" id="feedbackRatingInput" value="5">
+                        </div>
+                        <div class="form-group">
+                            <label for="feedbackComments">Your Comments / Experience:</label>
+                            <textarea id="feedbackComments" class="textarea-input" rows="4" maxlength="200" placeholder="Describe trail condition, checkpoint clarity, water access..." required></textarea>
+                            <span class="char-limit">Max 200 characters</span>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-block">Submit Feedback</button>
+                    </form>
+                </div>
+
+                <div class="feedback-list-card">
+                    <h3>Recent Trekker Feedback</h3>
+                    <div class="reviews-container" id="feedbacksList">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 6. ADMIN CONTROL CENTER VIEW -->
+        <section id="view-admin" class="content-view">
+            <div class="admin-panel-header">
+                <div>
+                    <h2>TrailSafe Administrator Control Panel</h2>
+                    <p class="subtitle">System Monitoring, User Safety Oversight, and Regional Alert Dispatch</p>
+                </div>
+                <span class="badge badge-admin">Admin Privileges Active</span>
+            </div>
+
+            <!-- Admin Tabs -->
+            <div class="admin-tabs">
+                <button class="admin-tab-btn active" onclick="App.showAdminSubTab('admin-sos')">Emergency SOS Monitor</button>
+                <button class="admin-tab-btn" onclick="App.showAdminSubTab('admin-alerts')">Issue Safety Alerts</button>
+                <button class="admin-tab-btn" onclick="App.showAdminSubTab('admin-users')">Registered Users & Contacts</button>
+                <button class="admin-tab-btn" onclick="App.showAdminSubTab('admin-payments')">Payments & Synchronisation</button>
+            </div>
+
+            <!-- Admin Sub-tab 1: SOS Monitor -->
+            <div id="subtab-admin-sos" class="admin-subtab active">
+                <div class="subtab-card">
+                    <div class="section-header">
+                        <h3>Incoming Emergency SOS Requests</h3>
+                        <span class="badge badge-danger" id="adminActiveSosBadge">Live Incident Feed</span>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>SOS ID</th>
+                                    <th>Trekker Name</th>
+                                    <th>Phone</th>
+                                    <th>Trail / Route</th>
+                                    <th>GPS Coordinates</th>
+                                    <th>Service Assigned</th>
+                                    <th>Timestamp</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminSosTableBody">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Admin Sub-tab 2: Issue Safety Alert -->
+            <div id="subtab-admin-alerts" class="admin-subtab">
+                <div class="admin-grid-split">
+                    <div class="subtab-card">
+                        <h3>Broadcast New Safety Alert</h3>
+                        <p class="subtitle">Issue urgent notices regarding weather changes, landslides, or trail blockages.</p>
+                        <form id="issueAlertForm" onsubmit="App.handleCreateAlert(event)">
+                            <div class="form-group">
+                                <label for="alertRouteSelect">Affected Trekking Route:</label>
+                                <select id="alertRouteSelect" class="select-input" required>
+                                    <!-- Populated dynamically with routes -->
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="alertSeverity">Severity Level:</label>
+                                <select id="alertSeverity" class="select-input" required>
+                                    <option value="High">High (Immediate Danger / Heavy Rain)</option>
+                                    <option value="Medium" selected>Medium (Weather Advisory / Caution)</option>
+                                    <option value="Low">Low (Informational / Maintenance)</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="alertMessage">Alert Message (Max 200 chars):</label>
+                                <textarea id="alertMessage" class="textarea-input" rows="3" maxlength="200" placeholder="e.g. Heavy fog reported on summit trail. Descend before 5:00 PM." required></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-danger btn-block">Broadcast Alert to All Trekkers</button>
+                        </form>
+                    </div>
+
+                    <div class="subtab-card">
+                        <h3>Existing Active Alerts</h3>
+                        <div class="alerts-admin-list" id="adminAlertsList">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Admin Sub-tab 3: Registered Users & Contacts -->
+            <div id="subtab-admin-users" class="admin-subtab">
+                <div class="subtab-card">
+                    <h3>Registered Trekkers & Trusted Emergency Contacts</h3>
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>User ID</th>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Phone</th>
+                                    <th>Emergency Contact</th>
+                                    <th>Contact Phone</th>
+                                    <th>Relationship</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminUsersTableBody">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Admin Sub-tab 4: Payments & Sync Ledger -->
+            <div id="subtab-admin-payments" class="admin-subtab">
+                <div class="subtab-card">
+                    <h3>Payments & Offline Synchronisation Ledger</h3>
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Payment ID</th>
+                                    <th>User</th>
+                                    <th>Trip</th>
+                                    <th>Amount (INR)</th>
+                                    <th>Date</th>
+                                    <th>Payment Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminPaymentsTableBody">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- FLOATING EMERGENCY SOS BUTTON -->
+    <div class="floating-sos-container">
+        <button class="floating-sos-btn" onclick="App.openSOSModal()" title="Emergency SOS Request">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <span>SOS</span>
+        </button>
+    </div>
+
+    <!-- MODAL: LOGIN / REGISTER -->
+    <div id="authModal" class="modal-overlay hidden">
+        <div class="modal-card">
+            <button class="modal-close" onclick="App.closeAuthModal()">&times;</button>
+            <div class="modal-tabs">
+                <button id="authTabLogin" class="modal-tab-btn active" onclick="App.switchAuthMode('login')">Trekker Login</button>
+                <button id="authTabRegister" class="modal-tab-btn" onclick="App.switchAuthMode('register')">Register New</button>
+                <button id="authTabAdmin" class="modal-tab-btn" onclick="App.switchAuthMode('admin')">Admin Login</button>
+            </div>
+
+            <!-- Trekker Login Form -->
+            <form id="loginForm" class="modal-body-form" onsubmit="App.handleUserLogin(event)">
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" id="loginEmail" class="text-input" placeholder="roshan@gmail.com" required value="roshan@gmail.com">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="loginPassword" class="text-input" placeholder="password123" required value="password123">
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">Sign In</button>
+                <p class="form-hint">Sample user credentials pre-filled from project data (Roshan).</p>
+            </form>
+
+            <!-- User Registration Form -->
+            <form id="registerForm" class="modal-body-form hidden" onsubmit="App.handleUserRegister(event)">
+                <div class="form-group">
+                    <label>Full Name</label>
+                    <input type="text" id="regName" class="text-input" placeholder="e.g. Rahul Patil" required>
+                </div>
+                <div class="form-grid-2">
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="regEmail" class="text-input" placeholder="rahul@example.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Phone Number</label>
+                        <input type="tel" id="regPhone" class="text-input" placeholder="9822112233" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="regPassword" class="text-input" required>
+                </div>
+
+                <div class="divider-text"><span>Emergency Contact (Chapter 4.1)</span></div>
+
+                <div class="form-grid-3">
+                    <div class="form-group">
+                        <label>Contact Name</label>
+                        <input type="text" id="regContactName" class="text-input" placeholder="Contact Person" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Contact Phone</label>
+                        <input type="tel" id="regContactPhone" class="text-input" placeholder="9876543210" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Relationship</label>
+                        <select id="regRelationship" class="select-input">
+                            <option value="Parent">Parent</option>
+                            <option value="Friend">Friend</option>
+                            <option value="Spouse">Spouse</option>
+                            <option value="Sibling">Sibling</option>
+                        </select>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">Create Account</button>
+            </form>
+
+            <!-- Admin Login Form -->
+            <form id="adminLoginForm" class="modal-body-form hidden" onsubmit="App.handleAdminLogin(event)">
+                <div class="form-group">
+                    <label>Admin Email</label>
+                    <input type="email" id="adminEmail" class="text-input" value="admin@trailsafe.com" required>
+                </div>
+                <div class="form-group">
+                    <label>Admin Password</label>
+                    <input type="password" id="adminPassword" class="text-input" value="admin123" required>
+                </div>
+                <button type="submit" class="btn btn-dark btn-block">Enter Admin Center</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: ROUTE DETAILS -->
+    <div id="routeDetailsModal" class="modal-overlay hidden">
+        <div class="modal-card modal-lg">
+            <button class="modal-close" onclick="App.closeRouteDetailsModal()">&times;</button>
+            <div id="routeDetailsContent">
+                <!-- Dynamically generated with checkpoints, facilities, weather, alerts -->
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: BOOKING & ONLINE/OFFLINE PAYMENT -->
+    <div id="bookingModal" class="modal-overlay hidden">
+        <div class="modal-card">
+            <button class="modal-close" onclick="App.closeBookingModal()">&times;</button>
+            <h3>Book Trek Permit & Pay</h3>
+            <p class="subtitle" id="bookingRouteSubtitle">Harishchandragad Trek</p>
+
+            <form id="bookingForm" onsubmit="App.handleBookingSubmit(event)">
+                <input type="hidden" id="bookingRouteId">
+                <input type="hidden" id="bookingAmount" value="500">
+
+                <div class="form-grid-2">
+                    <div class="form-group">
+                        <label>Start Date</label>
+                        <input type="date" id="bookStartDate" class="text-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label>End Date</label>
+                        <input type="date" id="bookEndDate" class="text-input" required>
+                    </div>
+                </div>
+
+                <div class="payment-summary-box">
+                    <div class="summary-line">
+                        <span>Permit & Forest Entry Fee:</span>
+                        <span>₹350.00</span>
+                    </div>
+                    <div class="summary-line">
+                        <span>Wilderness Rescue & Safety Coverage:</span>
+                        <span>₹150.00</span>
+                    </div>
+                    <div class="summary-line total">
+                        <strong>Total Amount:</strong>
+                        <strong class="price">₹500.00</strong>
+                    </div>
+                </div>
+
+                <div class="payment-mode-box" id="paymentModeIndicator">
+                    <!-- Populated dynamically based on network status -->
+                </div>
+
+                <button type="submit" id="bookingSubmitBtn" class="btn btn-success btn-block">
+                    Proceed to Payment Testing Mode (₹500.00) &rarr;
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: PAYMENT TESTING GATEWAY (SANDBOX SIMULATOR) -->
+    <div id="paymentSandboxModal" class="modal-overlay hidden">
+        <div class="modal-card modal-lg sandbox-card">
+            <button class="modal-close" onclick="App.closePaymentSandboxModal()">&times;</button>
+            
+            <div class="sandbox-header">
+                <div class="sandbox-badge-row">
+                    <span class="badge badge-warning">🧪 PAYMENT TESTING SANDBOX MODE</span>
+                    <span class="sandbox-env-tag">Simulated Gateway v2.4</span>
+                </div>
+                <h3>Confirm & Process Trek Permit Payment</h3>
+                <p class="subtitle" id="sandboxRouteInfo">Permit Reference: Pending | Amount: ₹500.00</p>
+            </div>
+
+            <!-- Testing Payment Options -->
+            <div class="payment-tabs">
+                <button class="payment-tab-btn active" id="payTabBtnUpi" onclick="App.switchPaymentMethod('upi')">📱 PhonePe / UPI QR</button>
+                <button class="payment-tab-btn" id="payTabBtnCard" onclick="App.switchPaymentMethod('card')">💳 Test Card</button>
+                <button class="payment-tab-btn" id="payTabBtnNetbanking" onclick="App.switchPaymentMethod('netbanking')">🏦 Test Net Banking</button>
+                <button class="payment-tab-btn" id="payTabBtnOffline" onclick="App.switchPaymentMethod('offline')">⛰️ Remote Mountain Mode</button>
+            </div>
+
+            <div class="sandbox-body">
+                <!-- Test Card Tab -->
+                <div id="payMethodCard" class="pay-method-panel hidden">
+                    <div class="dummy-card-preview">
+                        <div class="card-chip"></div>
+                        <div class="card-number">4242 &bull;&bull;&bull;&bull; &bull;&bull;&bull;&bull; 4242</div>
+                        <div class="card-footer-info">
+                            <div>
+                                <small>CARDHOLDER</small>
+                                <span id="cardHolderDisplay">Roshan (Trekker)</span>
+                            </div>
+                            <div>
+                                <small>EXPIRES</small>
+                                <span>12/28</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-grid-2" style="margin-top:14px;">
+                        <div class="form-group">
+                            <label>Test Card Number</label>
+                            <input type="text" class="text-input" value="4242 4242 4242 4242" readonly>
+                        </div>
+                        <div class="form-grid-2">
+                            <div class="form-group">
+                                <label>Expiry</label>
+                                <input type="text" class="text-input" value="12/28" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label>CVV</label>
+                                <input type="text" class="text-input" value="123" readonly>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Test UPI Tab with Official Admin-TrailSafe PhonePe QR -->
+                <div id="payMethodUpi" class="pay-method-panel active">
+                    <div class="upi-official-card">
+                        <div class="upi-official-header">
+                            <span class="badge badge-success">Official Payment QR Code</span>
+                            <span class="upi-merchant-name">Admin - TrailSafe</span>
+                        </div>
+                        <div class="upi-qr-image-wrapper">
+                            <img src="assets/payment_qr.jpg" alt="TrailSafe Admin PhonePe QR Code" class="official-qr-img">
+                        </div>
+                        <div class="upi-official-instructions">
+                            <div class="upi-pill-tag">
+                                <span>Receiver: <strong>Admin - TrailSafe</strong></span>
+                                <span class="verified-tick">✓ Verified Account</span>
+                            </div>
+                            <p class="upi-hint-text">Scan with <strong>PhonePe</strong>, Google Pay, Paytm, or any UPI app to transfer permit fee (₹500.00). After scanning & paying, click <strong>Confirm Payment (Success)</strong> below to verify and generate your official stamped permit receipt.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Test Net Banking Tab -->
+                <div id="payMethodNetbanking" class="pay-method-panel hidden">
+                    <label style="font-weight:600; font-size:0.85rem; margin-bottom:8px; display:block;">Select Test Bank:</label>
+                    <div class="bank-grid">
+                        <label class="bank-radio"><input type="radio" name="testBank" checked> <span>State Bank of India (Sandbox)</span></label>
+                        <label class="bank-radio"><input type="radio" name="testBank"> <span>HDFC Bank (Sandbox)</span></label>
+                        <label class="bank-radio"><input type="radio" name="testBank"> <span>ICICI Bank (Sandbox)</span></label>
+                        <label class="bank-radio"><input type="radio" name="testBank"> <span>Axis Bank (Sandbox)</span></label>
+                    </div>
+                </div>
+
+                <!-- Offline Remote Tab -->
+                <div id="payMethodOffline" class="pay-method-panel hidden">
+                    <div class="offline-test-box">
+                        <span style="font-size:2rem;">⛰️</span>
+                        <div>
+                            <strong>Remote Mountain Offline Simulation</strong>
+                            <p style="font-size:0.85rem; color:var(--gray-600); margin-top:4px;">Simulates poor or absent mobile network in deep mountain passes. The permit transaction is safely encrypted in your browser's local queue and marked <em>Pending</em> until connectivity returns.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Testing Outcome Simulation Actions -->
+                <div class="sandbox-controls">
+                    <span class="controls-title">Choose Payment Test Outcome:</span>
+                    <div class="sandbox-actions-grid">
+                        <button type="button" class="btn btn-success btn-lg" onclick="App.executeTestPayment('Success')">
+                            ✅ Confirm Payment (Success)
+                        </button>
+                        <button type="button" class="btn btn-danger btn-lg" onclick="App.executeTestPayment('Failed')">
+                            ❌ Simulate Failure / Decline
+                        </button>
+                        <button type="button" class="btn btn-warning btn-lg" onclick="App.executeTestPayment('Offline')">
+                            📶 Simulate Network Drop
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: EMERGENCY SOS DISPATCH -->
+    <div id="sosModal" class="modal-overlay hidden">
+        <div class="modal-card sos-modal-card">
+            <button class="modal-close" onclick="App.closeSOSModal()">&times;</button>
+            <div class="sos-header">
+                <div class="sos-icon-big">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                </div>
+                <h2>EMERGENCY RESCUE SOS</h2>
+                <p>Dispatch immediate alert with your exact GPS coordinates to regional mountain rescue forces.</p>
+            </div>
+
+            <form id="sosForm" onsubmit="App.handleSendSOS(event)">
+                <div class="form-group">
+                    <label>Select Emergency Dispatch Authority:</label>
+                    <select id="sosServiceSelect" class="select-input" required>
+                        <!-- Populated with EmergencyService records -->
+                    </select>
+                </div>
+
+                <div class="gps-coords-box">
+                    <div class="coords-title">Captured GPS Coordinates:</div>
+                    <div class="coords-values">
+                        <span>Latitude: <strong id="sosLatDisplay">19.930000</strong></span>
+                        <span>Longitude: <strong id="sosLngDisplay">73.810000</strong></span>
+                    </div>
+                    <small>High accuracy GPS location automatically retrieved.</small>
+                </div>
+
+                <div class="form-group">
+                    <label>Emergency Type / Condition:</label>
+                    <select id="sosEmergencyType" class="select-input">
+                        <option value="Injury / Fall">Medical Injury / Broken Limb / Fall</option>
+                        <option value="Lost / Disoriented">Lost Trail / Severe Weather Disorientation</option>
+                        <option value="Wild Animal / Danger">Wild Animal Encounter / Immediate Threat</option>
+                        <option value="Hypothermia / Exhaustion">Severe Hypothermia / Dehydration</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="btn btn-danger btn-block btn-lg pulse">
+                    TRANSMIT EMERGENCY SOS NOW
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: OFFICIAL RECEIPT / REPORT (Chapter 5.2) -->
+    <div id="receiptModal" class="modal-overlay hidden">
+        <div class="modal-card receipt-card">
+            <button class="modal-close" onclick="App.closeReceiptModal()">&times;</button>
+            <div id="printableReceiptArea">
+                <!-- Dynamically populated printable invoice -->
+            </div>
+            <div class="receipt-footer-actions">
+                <button class="btn btn-primary" onclick="window.print()">Print / Save as PDF</button>
+                <button class="btn btn-secondary" onclick="App.closeReceiptModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

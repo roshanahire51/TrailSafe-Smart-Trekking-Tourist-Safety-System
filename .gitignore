@@ -1,0 +1,22 @@
+# Compiled Java classes
+bin/
+*.class
+
+# Package files
+*.jar
+*.war
+*.ear
+
+# Logs and temporary files
+*.log
+database/data_store.json
+
+# IDE settings
+.vscode/
+.idea/
+*.iml
+
+# OS files
+Thumbs.db
+Desktop.ini
+.DS_Store
