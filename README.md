@@ -72,7 +72,7 @@ All sample records are derived directly from the **Object Diagram (Chapter 4.4.4
 
 ### 2. Administrator Account
 - **Email**: `admin@trailsafe.com`
-- **Password**: `admin123`
+- **Password**: `423213`
 - **Role**: TrailSafe Safety Officer (can broadcast safety alerts, monitor all users, view payments, and manage SOS emergency dispatches)
 
 ---

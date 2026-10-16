@@ -72,7 +72,7 @@ public class DatabaseManager {
      */
     private void seedInitialData() {
         // 1. Admin
-        admins.put(1, new Admin(1, "TrailSafe Control Officer", "admin@trailsafe.com", "admin123"));
+        admins.put(1, new Admin(1, "TrailSafe Control Officer", "admin@trailsafe.com", "423213"));
 
         // 2. Users
         users.put(101, new User(101, "Roshan", "roshan@gmail.com", "9876543210", "password123"));

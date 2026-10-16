@@ -7,7 +7,7 @@ USE trailsafe_db;
 
 -- 1. Admin
 INSERT INTO Admin (Admin_ID, Name, Email, Password) VALUES
-(1, 'Admin Officer', 'admin@trailsafe.com', 'admin123');
+(1, 'Admin Officer', 'admin@trailsafe.com', '423213');
 
 -- 2. User (user1 from Section 4.4.4)
 INSERT INTO User (User_ID, Name, Email, Phone, Password) VALUES
