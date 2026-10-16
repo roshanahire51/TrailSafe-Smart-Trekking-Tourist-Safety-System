@@ -12,7 +12,12 @@ public class TrailSafeServer {
 
     public static void main(String[] args) {
         int port = DEFAULT_PORT;
-        if (args.length > 0) {
+        String portEnv = System.getenv("PORT");
+        if (portEnv != null && !portEnv.trim().isEmpty()) {
+            try {
+                port = Integer.parseInt(portEnv.trim());
+            } catch (NumberFormatException ignored) {}
+        } else if (args.length > 0) {
             try {
                 port = Integer.parseInt(args[0]);
             } catch (NumberFormatException ignored) {}
