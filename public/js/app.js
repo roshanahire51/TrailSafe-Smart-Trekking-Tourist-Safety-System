@@ -38,22 +38,19 @@ const App = {
             } catch (e) {
                 this.currentUser = null;
             }
+        } else {
+            this.currentUser = null;
         }
-        if (!this.currentUser) {
-            // Default seed user Roshan (user1 from Section 4.4.4)
-            this.currentUser = {
-                userId: 101,
-                name: "Roshan",
-                email: "roshan@gmail.com",
-                phone: "9876543210",
-                emergencyContact: {
-                    contactId: 1301,
-                    name: "Amit",
-                    phone: "9876543210",
-                    relationship: "Friend"
-                }
-            };
-            localStorage.setItem('trailsafe_user', JSON.stringify(this.currentUser));
+
+        const savedAdmin = localStorage.getItem('trailsafe_admin');
+        if (savedAdmin) {
+            try {
+                this.currentAdmin = JSON.parse(savedAdmin);
+            } catch (e) {
+                this.currentAdmin = null;
+            }
+        } else {
+            this.currentAdmin = null;
         }
 
         this.renderUserSession();
@@ -243,6 +240,16 @@ const App = {
         document.getElementById('authModal').classList.add('hidden');
     },
 
+    fillDemoUser() {
+        const emailInput = document.getElementById('loginEmail');
+        const passInput = document.getElementById('loginPassword');
+        if (emailInput && passInput) {
+            emailInput.value = 'roshan@gmail.com';
+            passInput.value = 'password123';
+            this.showToast('Demo credentials filled for Roshan.', 'info');
+        }
+    },
+
     async handleUserLogin(e) {
         e.preventDefault();
         const email = document.getElementById('loginEmail').value;
@@ -259,6 +266,9 @@ const App = {
                 this.currentUser = data.user;
                 this.currentAdmin = null;
                 localStorage.setItem('trailsafe_user', JSON.stringify(this.currentUser));
+                localStorage.removeItem('trailsafe_admin');
+                document.getElementById('loginEmail').value = '';
+                document.getElementById('loginPassword').value = '';
                 this.closeAuthModal();
                 this.renderUserSession();
                 this.loadUserTrips();
@@ -292,10 +302,12 @@ const App = {
                 this.currentUser = data.user;
                 this.currentAdmin = null;
                 localStorage.setItem('trailsafe_user', JSON.stringify(this.currentUser));
+                localStorage.removeItem('trailsafe_admin');
+                document.getElementById('registerForm').reset();
                 this.closeAuthModal();
                 this.renderUserSession();
                 this.loadUserTrips();
-                this.showToast('Account registered successfully! Welcome to TrailSafe.', 'success');
+                this.showToast(`Welcome, ${this.currentUser.name}! Your account has been created.`, 'success');
             } else {
                 this.showToast(data.error || 'Registration failed', 'error');
             }
@@ -319,6 +331,8 @@ const App = {
             if (data.success) {
                 this.currentAdmin = data.admin;
                 this.currentUser = null;
+                localStorage.setItem('trailsafe_admin', JSON.stringify(this.currentAdmin));
+                localStorage.removeItem('trailsafe_user');
                 this.closeAuthModal();
                 this.renderUserSession();
                 this.showTab('admin');
@@ -336,7 +350,9 @@ const App = {
         this.currentUser = null;
         this.currentAdmin = null;
         localStorage.removeItem('trailsafe_user');
+        localStorage.removeItem('trailsafe_admin');
         this.renderUserSession();
+        this.loadUserTrips();
         this.showTab('dashboard');
         this.showToast('Logged out successfully.', 'info');
     },
@@ -363,7 +379,10 @@ const App = {
             if (adminTab) adminTab.classList.add('hidden');
         } else {
             widget.innerHTML = `
-                <button class="btn btn-sm btn-secondary" onclick="App.openAuthModal('login')">Sign In</button>
+                <div style="display:flex; gap:6px; align-items:center;">
+                    <button class="btn btn-sm btn-secondary" onclick="App.openAuthModal('login')">Sign In</button>
+                    <button class="btn btn-sm btn-primary" onclick="App.openAuthModal('register')">Register</button>
+                </div>
             `;
             if (adminTab) adminTab.classList.add('hidden');
         }
@@ -384,13 +403,23 @@ const App = {
                 </div>
                 <small class="badge badge-nature">Designated for Live Location & SOS</small>
             `;
-        } else {
+        } else if (this.currentUser) {
             strip.innerHTML = `
                 <div>
                     <strong>Trusted Emergency Contact:</strong>
-                    <span>Amit (Friend) – 📞 <strong>9876543210</strong> (Default Object Diagram Sample)</span>
+                    <span>No emergency contact registered yet.</span>
                 </div>
-                <small class="badge badge-warning">Sample Contact Active</small>
+                <small class="badge badge-warning">Standard Safety Dispatch Active</small>
+            `;
+        } else {
+            strip.innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:center; width:100%; flex-wrap:wrap; gap:8px;">
+                    <div>
+                        <strong>Emergency Contact:</strong>
+                        <span>Please sign in or register to link trusted contacts for live trail updates.</span>
+                    </div>
+                    <button class="btn btn-sm btn-primary" onclick="App.openAuthModal('register')">Create Account</button>
+                </div>
             `;
         }
     },
@@ -657,6 +686,12 @@ const App = {
 
     // --- Booking & Payments ---
     openBookingModal(routeId) {
+        if (!this.currentUser) {
+            this.showToast('Please sign in or create an account to book permits.', 'info');
+            this.openAuthModal('login');
+            return;
+        }
+
         const route = this.routes.find(r => r.routeId === routeId) || this.routes[0];
         if (!route) return;
 
@@ -867,7 +902,12 @@ const App = {
     },
 
     async loadUserTrips() {
-        const userId = this.currentUser ? this.currentUser.userId : 101;
+        if (!this.currentUser) {
+            this.trips = [];
+            this.renderUserTrips();
+            return;
+        }
+        const userId = this.currentUser.userId;
         try {
             const res = await fetch(`/api/trips?userId=${userId}`);
             const data = await res.json();
@@ -881,6 +921,22 @@ const App = {
     renderUserTrips() {
         const tbody = document.getElementById('userTripsTableBody');
         if (!tbody) return;
+
+        if (!this.currentUser) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" style="text-align:center; padding:36px 16px;">
+                        <h4 style="color:var(--dark); font-size:1.05rem; margin-bottom:6px;">You are currently browsing as Guest</h4>
+                        <p style="color:var(--gray-600); font-size:0.85rem; margin-bottom:14px;">Sign in or create a new trekker account to manage trips, permits, and payment receipts.</p>
+                        <div style="display:inline-flex; gap:8px;">
+                            <button class="btn btn-primary btn-sm" onclick="App.openAuthModal('login')">Sign In</button>
+                            <button class="btn btn-outline btn-sm" onclick="App.openAuthModal('register')">Register New Account</button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+            return;
+        }
 
         const offlineQueue = this.getOfflineQueue();
         let rowsHtml = '';
@@ -1115,6 +1171,12 @@ const App = {
     },
 
     toggleLocationSharing() {
+        if (!this.currentUser) {
+            this.showToast('Please sign in or register to share your live location with emergency contacts.', 'info');
+            this.openAuthModal('login');
+            return;
+        }
+
         this.isSharingLocation = !this.isSharingLocation;
         const pill = document.getElementById('trackingStatusPill');
         const text = document.getElementById('trackingStatusText');
@@ -1249,9 +1311,15 @@ const App = {
 
     async handleFeedbackSubmit(e) {
         e.preventDefault();
+        if (!this.currentUser) {
+            this.showToast('Please sign in or register to submit feedback.', 'info');
+            this.openAuthModal('login');
+            return;
+        }
+
         const rating = parseInt(document.getElementById('feedbackRatingInput').value);
         const comments = document.getElementById('feedbackComments').value;
-        const userId = this.currentUser ? this.currentUser.userId : 101;
+        const userId = this.currentUser.userId;
 
         try {
             const res = await fetch('/api/feedback/submit', {
