@@ -1032,7 +1032,10 @@ const App = {
         if (!mapElement) return;
 
         // Centered around Harishchandragad / Sahyadri mountain region (Maharashtra, India)
-        this.map = L.map('leafletMap').setView([19.3900, 73.7800], 12);
+        this.map = L.map('leafletMap', {
+            tap: false,
+            scrollWheelZoom: false
+        }).setView([19.3900, 73.7800], 12);
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; OpenStreetMap contributors | TrailSafe Smart Trekking'
