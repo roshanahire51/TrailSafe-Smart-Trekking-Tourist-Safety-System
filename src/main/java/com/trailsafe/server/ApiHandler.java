@@ -18,10 +18,16 @@ public class ApiHandler implements HttpHandler {
 
     @Override
     public void handle(HttpExchange exchange) throws IOException {
-        // Enable CORS
-        exchange.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
+        // Enable CORS for all origins, including file:// (which sends Origin: null)
+        String origin = exchange.getRequestHeaders().getFirst("Origin");
+        if (origin != null && !origin.isEmpty()) {
+            exchange.getResponseHeaders().set("Access-Control-Allow-Origin", origin);
+        } else {
+            exchange.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
+        }
         exchange.getResponseHeaders().set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-        exchange.getResponseHeaders().set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+        exchange.getResponseHeaders().set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");
+        exchange.getResponseHeaders().set("Access-Control-Allow-Private-Network", "true");
 
         String method = exchange.getRequestMethod().toUpperCase();
         if ("OPTIONS".equals(method)) {
@@ -305,6 +311,12 @@ public class ApiHandler implements HttpHandler {
         String json = JsonUtil.toJson(data);
         byte[] bytes = json.getBytes(StandardCharsets.UTF_8);
         exchange.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
+        String origin = exchange.getRequestHeaders().getFirst("Origin");
+        if (origin != null && !origin.isEmpty()) {
+            exchange.getResponseHeaders().set("Access-Control-Allow-Origin", origin);
+        } else if (!exchange.getResponseHeaders().containsKey("Access-Control-Allow-Origin")) {
+            exchange.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
+        }
         exchange.sendResponseHeaders(statusCode, bytes.length);
         try (OutputStream os = exchange.getResponseBody()) {
             os.write(bytes);

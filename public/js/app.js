@@ -5,6 +5,22 @@
  * Admin Monitoring, and Offline Payment Queuing with Auto-Sync.
  */
 
+// If opened directly from disk (file:/// protocol), automatically route /api/ calls to http://localhost:8080
+(function() {
+    const originalFetch = window.fetch;
+    const LOCAL_SERVER_BASE = 'http://localhost:8080';
+
+    window.fetch = function(input, init) {
+        if (typeof input === 'string' && input.startsWith('/api/')) {
+            const isFile = window.location.protocol === 'file:' || !window.location.origin || window.location.origin === 'null';
+            if (isFile) {
+                input = LOCAL_SERVER_BASE + input;
+            }
+        }
+        return originalFetch(input, init);
+    };
+})();
+
 const App = {
     // State
     currentUser: null,
@@ -22,6 +38,7 @@ const App = {
     currentCoords: { lat: 19.9210, lng: 73.8030 },
 
     init() {
+        this.checkFileProtocolNotice();
         this.setupAuth();
         this.setupNetworkMonitor();
         this.setupEventListeners();
@@ -56,6 +73,13 @@ const App = {
         this.renderUserSession();
         this.loadUserTrips();
         this.initMap();
+    },
+
+    checkFileProtocolNotice() {
+        if (window.location.protocol === 'file:') {
+            const notice = document.getElementById('fileProtocolWarning');
+            if (notice) notice.classList.remove('hidden');
+        }
     },
 
     // --- Network & Offline Payment Queue ---
@@ -500,6 +524,9 @@ const App = {
             this.populateAdminRouteDropdown();
         } catch (e) {
             console.error('Failed to load routes', e);
+            if (window.location.protocol === 'file:') {
+                this.showToast('Server not detected at http://localhost:8080. Please run run.bat.', 'warning');
+            }
         }
     },
 
